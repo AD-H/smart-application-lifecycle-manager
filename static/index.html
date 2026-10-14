@@ -1,0 +1,1108 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SALM | Application Lifecycle Manager</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root {
+    --bg: #0b1020;
+    --panel: #131b2e;
+    --border: #26334c;
+    --text: #edf2ff;
+    --muted: #91a0ba;
+    --accent: #70a5ff;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #fb7185;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Inter, Segoe UI, Arial, sans-serif;
+}
+
+header {
+    padding: 22px 5%;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.brand {
+    font-size: 21px;
+    font-weight: 750;
+}
+
+.brand span { color: var(--accent); }
+
+.subtitle {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 6px;
+}
+
+button, input, select { font: inherit; }
+
+button {
+    cursor: pointer;
+    color: var(--text);
+    background: #1e2c47;
+    border: 1px solid #344666;
+    border-radius: 8px;
+    padding: 9px 13px;
+}
+
+button:hover { border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+
+main {
+    width: 90%;
+    max-width: 1500px;
+    margin: 28px auto;
+}
+
+.section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 24px 0 16px;
+}
+
+h2 { font-size: 17px; margin: 0; }
+
+.muted { color: var(--muted); font-size: 12px; }
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    padding: 19px;
+    min-width: 0;
+}
+
+.metric-label { color: var(--muted); font-size: 13px; }
+
+.metric-value {
+    font-size: 29px;
+    font-weight: 750;
+    margin: 13px 0 7px;
+}
+
+.metric-note { color: var(--muted); font-size: 12px; }
+
+.layout {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.chart-box { height: 235px; margin-top: 20px; }
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+input, select {
+    background: #0c1426;
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 10px;
+    border-radius: 8px;
+    min-width: 0;
+}
+
+input { width: 240px; }
+
+.table-wrap {
+    overflow-x: auto;
+    margin-top: 16px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 600;
+    background: #10182a;
+}
+
+th, td {
+    padding: 13px 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+tbody tr:hover { background: #18243a; }
+
+.pill {
+    display: inline-block;
+    border-radius: 20px;
+    padding: 5px 8px;
+    background: #26344d;
+    font-size: 10px;
+}
+
+.good { color: var(--green); }
+.warn { color: var(--yellow); }
+.bad { color: var(--red); }
+
+.action-button {
+    padding: 6px 9px;
+    font-size: 11px;
+    margin-right: 4px;
+}
+
+.message {
+    margin-top: 14px;
+    padding: 11px;
+    border-radius: 8px;
+    background: #172b43;
+    font-size: 12px;
+    display: none;
+}
+
+footer {
+    padding: 24px 5%;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 35px;
+}
+
+@media (max-width: 900px) {
+    .cards { grid-template-columns: repeat(2, 1fr); }
+    .layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+    main { width: 94%; }
+    .cards { grid-template-columns: 1fr 1fr; gap: 9px; }
+    .panel { padding: 13px; }
+    .metric-value { font-size: 23px; }
+    input { width: 100%; }
+}
+
+.application-controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.application-controls input,
+.application-controls select {
+    padding: 10px 12px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    font: inherit;
+}
+
+.application-controls input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.application-controls select {
+    min-width: 180px;
+}
+
+.app-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.app-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #26344d;
+    font-size: 19px;
+    flex-shrink: 0;
+}
+
+.app-name {
+    font-weight: 600;
+}
+
+.automation-panel {
+    margin: 20px 0;
+    padding: 20px;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+}
+
+.automation-status-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 16px 0;
+}
+
+#automationToggle {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+#automationToggle:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+</style>
+</head>
+
+<body>
+<header>
+    <div>
+        <div class="brand">SALM <span>/</span> Lifecycle Manager</div>
+        <div class="subtitle">
+            SMART APPLICATION LIFECYCLE MANAGER · LINUX PROCESS ANALYTICS
+        </div>
+    </div>
+    <div class="controls">
+        <span id="connection" class="muted">Connecting...</span>
+        <button id="refreshBtn" onclick="refreshDashboard()">Refresh now</button>
+    </div>
+</header>
+
+<main>
+    <div class="section-heading">
+        <div>
+            <h2>System overview</h2>
+            <div class="muted">Live measurements from the monitored environment</div>
+        </div>
+        <span id="lastUpdated" class="muted">Waiting for data</span>
+    </div>
+
+    <section class="cards">
+        <div class="panel">
+            <div class="metric-label">System CPU</div>
+            <div class="metric-value" id="cpuValue">--%</div>
+            <div class="metric-note">Overall CPU utilization</div>
+        </div>
+        <div class="panel">
+            <div class="metric-label">Memory utilization</div>
+            <div class="metric-value" id="ramValue">--%</div>
+            <div class="metric-note" id="ramDetail">Used / total RAM</div>
+        </div>
+        <div class="panel">
+            <div class="metric-label">Visible processes</div>
+            <div class="metric-value" id="processValue">--</div>
+            <div class="metric-note">Processes returned by the OS</div>
+        </div>
+        <div class="panel">
+            <div class="metric-label">Needs investigation</div>
+            <div class="metric-value" id="investigateValue">--</div>
+            <div class="metric-note">High-usage classifications</div>
+        </div>
+    </section>
+
+    <section class="layout">
+        <div class="panel">
+            <h2>Resource utilization history</h2>
+            <div class="muted">Recent dashboard samples · not persistent history</div>
+            <div class="chart-box">
+                <canvas id="resourceChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Classification summary</h2>
+            <div class="muted">Current process classifications</div>
+            <div class="chart-box">
+                <canvas id="classificationChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-heading">
+        <div>
+            
+<h2>Process intelligence</h2>
+<div class="muted">Rule-based analysis and lifecycle recommendations</div>
+</div>
+
+<div class="controls">
+    <button id="applicationsTab" class="view-tab active"
+            onclick="switchView('applications')">
+        Applications
+    </button>
+
+    <button id="processesTab" class="view-tab"
+            onclick="switchView('processes')">
+        Processes
+    </button>
+
+    <button onclick="loadApplications()">
+        Refresh
+    </button>
+</div>
+<div class="application-controls">
+    <input
+        type="text"
+        id="applicationSearch"
+        placeholder="Search applications..."
+        aria-label="Search applications"
+    />
+
+    <select id="applicationSort" aria-label="Sort applications by RAM">
+        <option value="ram-desc">RAM: Highest first</option>
+        <option value="ram-asc">RAM: Lowest first</option>
+        <option value="name-asc">Name: A to Z</option>
+        <option value="name-desc">Name: Z to A</option>
+    </select>
+</div>
+</div>
+
+<section class="automation-panel">
+    <h2>Automatic Lifecycle Management</h2>
+    <p>
+        Automatically manage eligible idle processes using
+        SALM's lifecycle rules.
+    </p>
+
+    <div class="automation-status-row">
+        <span>Status:</span>
+        <strong id="automationStatus">Checking...</strong>
+
+        <button id="automationToggle" type="button">
+            Enable Automation
+        </button>
+    </div>
+
+    <p>
+        Processes suspended by SALM:
+        <strong id="suspendedCount">0</strong>
+    </p>
+
+    <h3>Lifecycle Action History</h3>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>PID</th>
+                    <th>Process</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody id="automationHistoryBody">
+                <tr>
+                    <td colspan="5">Loading history...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+<div id="applicationsView" style="display: none;">
+    <div class="muted" id="applicationsSummary">
+        Loading application groups...
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Application</th>
+                    <th>Processes</th>
+                    <th>CPU %</th>
+                    <th>Total RAM (MB)</th>
+                    <th>Process IDs</th>
+                </tr>
+            </thead>
+            <tbody id="applicationsTableBody">
+                <tr>
+                    <td colspan="5">Loading applications...</td>
+                    
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+    <div class="panel">
+        <div id="tableStatus" class="muted">Loading process information...</div>
+        <div class="table-wrap">
+            
+<div id="processesView">
+    <div class="controls">
+        <input id="searchInput"
+               placeholder="Search PID or process name..."
+               oninput="renderTable()">
+
+        <select id="classFilter" onchange="renderTable()">
+            <option value="">All classifications</option>
+            <option value="HIGH USAGE">High usage</option>
+            <option value="IDLE RESOURCE CONSUMER">
+                Idle resource consumer
+            </option>
+            <option value="LOW ACTIVITY">Low activity</option>
+            <option value="ACTIVE">Active</option>
+        </select>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>PID</th>
+                    <th>Process</th>
+                    <th>CPU %</th>
+                    <th>RAM MB</th>
+                    <th>OS status</th>
+                    <th>Idle sec</th>
+                    <th>Score</th>
+                    <th>Classification</th>
+                    <th>Recommendation</th>
+                    <th>Controls</th>
+                </tr>
+            </thead>
+            <tbody id="processTable"></tbody>
+        </table>
+    </div>
+</div>
+        </div>
+        <div id="message" class="message" role="status"></div>
+    </div>
+</main>
+
+<footer>
+    SALM · Rule-based resource analysis · Human-approved lifecycle controls
+    <br><br>
+    Process data reflects the Linux/WSL environment visible to the backend.
+    Recommendations are advisory; sleeping does not necessarily mean unnecessary.
+</footer>
+
+<script>
+let processes = [];
+let resourceChart;
+let classificationChart;
+let refreshInProgress = false;
+
+function showMessage(text) {
+    const box = document.getElementById("message");
+    box.textContent = text;
+    box.style.display = "block";
+}
+
+function format(value, digits = 1) {
+    return Number(value ?? 0).toFixed(digits);
+}
+
+function badgeClass(classification) {
+    if (classification === "HIGH USAGE") return "bad";
+    if (classification === "IDLE RESOURCE CONSUMER") return "warn";
+    return "good";
+}
+
+function initCharts() {
+    if (typeof Chart === "undefined") {
+        showMessage("Chart.js could not load. Check your internet connection.");
+        return;
+    }
+
+    resourceChart = new Chart(document.getElementById("resourceChart"), {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: "CPU %",
+                    data: [],
+                    borderColor: "#70a5ff",
+                    backgroundColor: "#70a5ff",
+                    tension: 0.3
+                },
+                {
+                    label: "RAM %",
+                    data: [],
+                    borderColor: "#4ade80",
+                    backgroundColor: "#4ade80",
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            scales: {
+                y: { beginAtZero: true, max: 100 }
+            }
+        }
+    });
+
+    classificationChart = new Chart(
+        document.getElementById("classificationChart"),
+        {
+            type: "doughnut",
+            data: {
+                labels: [
+                    "High usage",
+                    "Idle resource consumer",
+                    "Low activity",
+                    "Active"
+                ],
+                datasets: [{
+                    data: [0, 0, 0, 0],
+                    backgroundColor: [
+                        "#fb7185", "#fbbf24", "#70a5ff", "#4ade80"
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        }
+    );
+}
+
+async function loadSystem() {
+    const response = await fetch("/api/system");
+    if (!response.ok) throw new Error("System API returned an error");
+
+    const data = await response.json();
+
+    document.getElementById("cpuValue").textContent =
+        format(data.cpu_percent) + "%";
+    document.getElementById("ramValue").textContent =
+        format(data.memory_percent) + "%";
+    document.getElementById("ramDetail").textContent =
+        format(data.memory_used_mb / 1024) + " / " +
+        format(data.memory_total_mb / 1024) + " GB";
+    document.getElementById("processValue").textContent =
+        data.process_count;
+}
+
+async function loadProcesses() {
+    const response = await fetch("/api/processes");
+    if (!response.ok) throw new Error("Process API returned an error");
+
+    const data = await response.json();
+    processes = data.processes || [];
+
+    document.getElementById("investigateValue").textContent =
+        processes.filter(p => p.classification === "HIGH USAGE").length;
+
+    updateClassificationChart();
+    renderTable();
+}
+
+let applications = [];
+
+function switchView(view) {
+    const showApplications = view === "applications";
+
+    document.getElementById("applicationsView").style.display =
+        showApplications ? "block" : "none";
+
+    document.getElementById("processesView").style.display =
+        showApplications ? "none" : "block";
+
+    document.getElementById("applicationsTab").classList.toggle(
+        "active", showApplications
+    );
+
+    document.getElementById("processesTab").classList.toggle(
+        "active", !showApplications
+    );
+
+    if (showApplications) {
+        loadApplications();
+    }
+}
+
+
+async function loadApplications() {
+    const body = document.getElementById("applicationsTableBody");
+    const summary = document.getElementById("applicationsSummary");
+
+    summary.textContent = "Loading application groups...";
+    body.innerHTML =
+        '<tr><td colspan="5">Loading applications...</td></tr>';
+
+    try {
+        const response = await fetch("/api/applications");
+
+        if (!response.ok) {
+            throw new Error("Applications API returned an error");
+        }
+
+        const data = await response.json();
+        applications = data.applications || [];
+
+        renderApplicationTable();
+    } catch (error) {
+        summary.textContent = "Could not load application groups.";
+        body.innerHTML =
+            '<tr><td colspan="5">Check that the backend is running.</td></tr>';
+        console.error(error);
+    }
+}
+
+function renderApplicationTable() {
+    const body = document.getElementById("applicationsTableBody");
+    const summary = document.getElementById("applicationsSummary");
+    const searchInput = document.getElementById("applicationSearch");
+    const sortSelect = document.getElementById("applicationSort");
+
+    const query = searchInput.value.trim().toLowerCase();
+    const sortBy = sortSelect.value;
+
+    // Filter applications by name
+    let filtered = applications.filter(app =>
+        String(app.name || "").toLowerCase().includes(query)
+    );
+
+    // Sort the filtered applications
+    filtered.sort((a, b) => {
+        const nameA = String(a.name || "").toLowerCase();
+        const nameB = String(b.name || "").toLowerCase();
+
+        const ramA = Number(a.memory_mb) || 0;
+        const ramB = Number(b.memory_mb) || 0;
+
+        switch (sortBy) {
+            case "ram-desc":
+                return ramB - ramA;
+
+            case "ram-asc":
+                return ramA - ramB;
+
+            case "name-asc":
+                return nameA.localeCompare(nameB);
+
+            case "name-desc":
+                return nameB.localeCompare(nameA);
+
+            default:
+                return 0;
+        }
+    });
+
+    summary.textContent =
+        `${filtered.length} applications shown · ${applications.length} total`;
+
+    if (filtered.length === 0) {
+        body.innerHTML =
+            '<tr><td colspan="5">No matching applications found.</td></tr>';
+        return;
+    }
+
+    body.innerHTML = filtered.map(app => {
+        const name = String(app.name || "Unknown");
+        const lowerName = name.toLowerCase();
+
+        let icon = "🖥️";
+
+        if (lowerName.includes("chrome")) {
+            icon = "🌐";
+        } else if (
+            lowerName.includes("firefox") ||
+            lowerName.includes("edge") ||
+            lowerName.includes("browser")
+        ) {
+            icon = "🌍";
+        } else if (
+            lowerName.includes("code") ||
+            lowerName.includes("vscode")
+        ) {
+            icon = "💻";
+        } else if (
+            lowerName.includes("spotify") ||
+            lowerName.includes("music")
+        ) {
+            icon = "🎵";
+        } else if (lowerName.includes("python")) {
+            icon = "🐍";
+        } else if (
+            lowerName.includes("terminal") ||
+            lowerName.includes("bash") ||
+            lowerName.includes("shell")
+        ) {
+            icon = "⌨️";
+        } else if (lowerName.includes("docker")) {
+            icon = "🐳";
+        } else if (lowerName.includes("java")) {
+            icon = "☕";
+        }
+
+        const pids = Array.isArray(app.pids)
+            ? app.pids.join(", ")
+            : "";
+
+        return `
+            <tr>
+                <td>
+                    <div class="app-name-cell">
+                        <span class="app-icon">${icon}</span>
+                        <span class="app-name">${escapeHtml(name)}</span>
+                    </div>
+                </td>
+                <td>${Number(app.process_count) || 0}</td>
+                <td>${(Number(app.cpu_percent) || 0).toFixed(1)}%</td>
+                <td>${(Number(app.memory_mb) || 0).toFixed(1)}</td>
+                <td>${escapeHtml(pids)}</td>
+            </tr>
+        `;
+    }).join("");
+}
+
+
+document.getElementById("applicationSearch").addEventListener(
+    "input",
+    renderApplicationTable
+);
+
+document.getElementById("applicationSort").addEventListener(
+    "change",
+    renderApplicationTable
+);
+        
+
+
+
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[character]);
+}
+function updateClassificationChart() {
+    if (!classificationChart) return;
+
+    const categories = [
+        "HIGH USAGE",
+        "IDLE RESOURCE CONSUMER",
+        "LOW ACTIVITY",
+        "ACTIVE"
+    ];
+
+    classificationChart.data.datasets[0].data =
+        categories.map(category =>
+            processes.filter(p => p.classification === category).length
+        );
+
+    classificationChart.update();
+}
+
+function updateResourceChart(system) {
+    if (!resourceChart) return;
+
+    const time = new Date().toLocaleTimeString();
+
+    resourceChart.data.labels.push(time);
+    resourceChart.data.datasets[0].data.push(system.cpu_percent);
+    resourceChart.data.datasets[1].data.push(system.memory_percent);
+
+    // Keep the latest 20 samples.
+    if (resourceChart.data.labels.length > 20) {
+        resourceChart.data.labels.shift();
+        resourceChart.data.datasets.forEach(dataset => dataset.data.shift());
+    }
+
+    resourceChart.update();
+}
+
+function renderTable() {
+    const query = document.getElementById("searchInput").value
+        .trim().toLowerCase();
+
+    const category = document.getElementById("classFilter").value;
+
+    const filtered = processes.filter(p =>
+        (String(p.pid).includes(query) ||
+        String(p.name).toLowerCase().includes(query)) &&
+        (!category || p.classification === category)
+    );
+
+    document.getElementById("tableStatus").textContent =
+        `${filtered.length} processes shown · ${processes.length} total`;
+
+    const tbody = document.getElementById("processTable");
+    tbody.replaceChildren();
+
+    for (const p of filtered) {
+        const row = document.createElement("tr");
+
+        const values = [
+            p.pid,
+            p.name,
+            format(p.cpu_percent, 2),
+            format(p.memory_mb),
+            p.status,
+            format(p.idle_seconds),
+            p.score,
+            p.classification,
+            p.action
+        ];
+
+        values.forEach((value, index) => {
+            const cell = document.createElement("td");
+
+            if (index === 7 || index === 8) {
+                const badge = document.createElement("span");
+                badge.className = "pill " +
+                    (index === 7 ? badgeClass(p.classification) : "");
+                badge.textContent = String(value ?? "");
+                cell.appendChild(badge);
+            } else {
+                cell.textContent = String(value ?? "");
+            }
+
+            row.appendChild(cell);
+        });
+
+        const controls = document.createElement("td");
+
+        if (p.protected) {
+            controls.textContent = "Protected";
+        } else {
+            for (const action of ["suspend", "resume"]) {
+                const button = document.createElement("button");
+                button.className = "action-button";
+                button.textContent =
+                    action === "suspend" ? "Suspend" : "Resume";
+
+                button.addEventListener("click", () =>
+                    performAction(p, action)
+                );
+
+                controls.appendChild(button);
+            }
+        }
+
+        row.appendChild(controls);
+        tbody.appendChild(row);
+    }
+}
+
+async function performAction(process, action) {
+    const promptText = action === "suspend"
+        ? `Suspend ${process.name} (PID ${process.pid})? This will pause it.`
+        : `Resume ${process.name} (PID ${process.pid})?`;
+
+    if (!confirm(promptText)) return;
+
+    try {
+        const response = await fetch("/api/process-action", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                pid: process.pid,
+                action: action
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || "Action failed");
+        }
+
+        showMessage(data.message);
+        await refreshDashboard();
+    } catch (error) {
+        showMessage("Action failed: " + error.message);
+    }
+}
+
+async function refreshDashboard() {
+    if (refreshInProgress) return;
+
+    refreshInProgress = true;
+    document.getElementById("refreshBtn").disabled = true;
+
+    try {
+        const [systemResponse, processResponse] = await Promise.all([
+            fetch("/api/system"),
+            fetch("/api/processes")
+        ]);
+
+        if (!systemResponse.ok || !processResponse.ok) {
+            throw new Error("One or more API requests failed");
+        }
+
+        const system = await systemResponse.json();
+        const processData = await processResponse.json();
+
+        processes = processData.processes || [];
+
+        document.getElementById("cpuValue").textContent =
+            format(system.cpu_percent) + "%";
+        document.getElementById("ramValue").textContent =
+            format(system.memory_percent) + "%";
+        document.getElementById("ramDetail").textContent =
+            format(system.memory_used_mb / 1024) + " / " +
+            format(system.memory_total_mb / 1024) + " GB";
+        document.getElementById("processValue").textContent =
+            system.process_count;
+
+        document.getElementById("investigateValue").textContent =
+            processes.filter(p => p.classification === "HIGH USAGE").length;
+
+        updateResourceChart(system);
+        updateClassificationChart();
+        renderTable();
+        await loadApplications();
+        document.getElementById("connection").textContent = "Connected";
+        document.getElementById("connection").className = "good";
+        document.getElementById("lastUpdated").textContent =
+            "Updated " + new Date().toLocaleTimeString();
+
+    } catch (error) {
+        document.getElementById("connection").textContent = "Disconnected";
+        document.getElementById("connection").className = "bad";
+        showMessage("Dashboard error: " + error.message);
+    } finally {
+        refreshInProgress = false;
+        document.getElementById("refreshBtn").disabled = false;
+    }
+}
+
+initCharts();
+refreshDashboard();
+setInterval(refreshDashboard, 3000);
+
+async function refreshAutomationPanel() {
+    try {
+        const response = await fetch("/api/automation/status");
+        if (!response.ok) throw new Error("Status request failed");
+
+        const data = await response.json();
+
+        document.getElementById("automationStatus").textContent =
+            data.enabled ? "ON" : "OFF";
+
+        document.getElementById("suspendedCount").textContent =
+            data.suspended_count;
+
+        document.getElementById("automationToggle").textContent =
+            data.enabled ? "Disable Automation" : "Enable Automation";
+
+        const historyResponse =
+            await fetch("/api/automation/history");
+
+        if (!historyResponse.ok) {
+            throw new Error("History request failed");
+        }
+
+        const historyData = await historyResponse.json();
+        const body = document.getElementById("automationHistoryBody");
+
+        if (!historyData.history.length) {
+            body.innerHTML =
+                '<tr><td colspan="5">No lifecycle actions yet.</td></tr>';
+            return;
+        }
+
+        body.innerHTML = historyData.history.map(item => {
+            const safe = value => String(value ?? "").replace(
+                /[&<>"']/g,
+                character => ({
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    '"': "&quot;",
+                    "'": "&#39;"
+                })[character]
+            );
+
+            return `
+                <tr>
+                    <td>${safe(item.time)}</td>
+                    <td>${safe(item.pid)}</td>
+                    <td>${safe(item.name)}</td>
+                    <td>${safe(item.action)}</td>
+                    <td>${safe(item.message)}</td>
+                </tr>
+            `;
+        }).join("");
+
+    } catch (error) {
+        console.error("Automation panel error:", error);
+        document.getElementById("automationStatus").textContent =
+            "API unavailable";
+    }
+}
+
+document.getElementById("automationToggle").addEventListener(
+    "click",
+    async () => {
+        const button = document.getElementById("automationToggle");
+        button.disabled = true;
+
+        try {
+            const statusResponse =
+                await fetch("/api/automation/status");
+            const status = await statusResponse.json();
+
+            const endpoint = status.enabled
+                ? "/api/automation/stop"
+                : "/api/automation/start";
+
+            const response = await fetch(endpoint, {
+                method: "POST"
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.detail || "Automation request failed");
+            }
+
+            await refreshAutomationPanel();
+        } catch (error) {
+            alert("Could not change automation: " + error.message);
+        } finally {
+            button.disabled = false;
+        }
+    }
+);
+
+refreshAutomationPanel();
+setInterval(refreshAutomationPanel, 3000);
+</script>
+</body>
+</html>
