@@ -257,6 +257,113 @@ def stop_automation():
 def get_automation_history():
     return {"history": automation.history()}
 
+@app.get("/api/relationship-graph")
+def get_relationship_graph(limit: int = 150):
+    """
+    Returns process nodes and verified parent-child relationships.
+    The limit keeps the graph manageable on busy systems.
+    """
+    if limit < 20 or limit > 300:
+        raise HTTPException(
+            status_code=400,
+            detail="limit must be between 20 and 300"
+        )
+
+    processes = []
+    process_by_pid = {}
+
+    # Collect process information safely.
+    for proc in psutil.process_iter(
+        ["pid", "ppid", "name", "memory_info", "status"]
+    ):
+        try:
+            info = proc.info
+            pid = info["pid"]
+            name = info.get("name") or "Unknown"
+            ppid = info.get("ppid")
+
+            memory_info = info.get("memory_info")
+            memory_mb = (
+                round(memory_info.rss / (1024 * 1024), 2)
+                if memory_info is not None
+                else 0
+            )
+
+            cpu = proc.cpu_percent(interval=None)
+
+            item = {
+                "pid": pid,
+                "ppid": ppid,
+                "name": name,
+                "cpu_percent": round(cpu, 2),
+                "memory_mb": memory_mb,
+                "status": info.get("status") or "unknown",
+            }
+
+            processes.append(item)
+            process_by_pid[pid] = item
+
+        except (
+            psutil.NoSuchProcess,
+            psutil.AccessDenied,
+            psutil.ZombieProcess,
+        ):
+            continue
+
+    # Prioritize higher-memory processes if the graph is too large.
+    processes.sort(
+        key=lambda item: item["memory_mb"],
+        reverse=True
+    )
+
+    selected = processes[:limit]
+    selected_pids = {item["pid"] for item in selected}
+
+    nodes = []
+
+    for item in selected:
+        pid = item["pid"]
+
+        nodes.append({
+            "data": {
+                "id": str(pid),
+                "label": f'{item["name"]}\nPID {pid}',
+                "pid": pid,
+                "name": item["name"],
+                "cpu_percent": item["cpu_percent"],
+                "memory_mb": item["memory_mb"],
+                "status": item["status"],
+                "parent_pid": item["ppid"],
+                "protected": is_protected(pid, item["name"]),
+            }
+        })
+
+    edges = []
+
+    for item in selected:
+        pid = item["pid"]
+        ppid = item["ppid"]
+
+        # Only create an edge when both processes are present.
+        if ppid is not None and ppid in selected_pids:
+            edges.append({
+                "data": {
+                    "id": f"parent-{ppid}-{pid}",
+                    "source": str(ppid),
+                    "target": str(pid),
+                    "relationship": "parent-child",
+                }
+            })
+
+    return {
+        "nodes": nodes,
+        "edges": edges,
+        "node_count": len(nodes),
+        "edge_count": len(edges),
+        "relationship_type": "parent-child",
+        "limit": limit,
+    }
+
 from pathlib import Path
 
 STATIC_DIR = Path(__file__).parent / "static"

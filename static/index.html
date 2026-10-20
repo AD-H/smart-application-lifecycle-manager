@@ -7,7 +7,7 @@
 <title>SALM | Application Lifecycle Manager</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<script src="https://unpkg.com/cytoscape@3.30.4/dist/cytoscape.min.js"></script>
 <style>
 :root {
     --bg: #0b1020;
@@ -282,6 +282,117 @@ footer {
     cursor: wait;
     opacity: 0.6;
 }
+/* Process relationship graph */
+.graph-panel {
+    margin-top: 24px;
+}
+
+.graph-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 16px 0;
+}
+
+.graph-toolbar input {
+    flex: 1;
+    width: auto;
+    min-width: 200px;
+}
+
+.graph-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+#processGraph {
+    width: 100%;
+    height: 540px;
+    background: #0c1426;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.graph-details {
+    background: #0c1426;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    min-width: 0;
+}
+
+.graph-details h3 {
+    font-size: 15px;
+    margin: 0 0 8px;
+}
+
+.graph-detail-row {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.graph-detail-label {
+    color: var(--muted);
+    font-size: 11px;
+    margin-bottom: 5px;
+}
+
+.graph-detail-value {
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.graph-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.view-tab.active {
+    background: #294a78;
+    border-color: var(--accent);
+    color: white;
+}
+
+#graphStatus {
+    margin-top: 10px;
+    min-height: 18px;
+}
+
+@media (max-width: 900px) {
+    .graph-layout {
+        grid-template-columns: 1fr;
+    }
+
+    #processGraph {
+        height: 430px;
+    }
+}
+
+@media (max-width: 520px) {
+    #processGraph {
+        height: 350px;
+    }
+
+    .graph-toolbar input {
+        width: 100%;
+        min-width: 0;
+    }
+}
 </style>
 </head>
 
@@ -500,6 +611,88 @@ footer {
         </div>
         <div id="message" class="message" role="status"></div>
     </div>
+    <section class="panel graph-panel">
+    <div class="section-heading">
+        <div>
+            <h2>Process Relationship Graph</h2>
+            <div class="muted">
+                Explore parent-child relationships between operating-system processes
+            </div>
+        </div>
+        <button id="refreshGraphBtn" type="button">
+            Refresh graph
+        </button>
+    </div>
+
+    <div class="graph-toolbar">
+        <input
+            id="graphSearch"
+            type="text"
+            placeholder="Search process name or PID..."
+            aria-label="Search process relationship graph"
+        />
+        <button id="graphSearchBtn" type="button">Find process</button>
+        <button id="graphResetBtn" type="button">Reset view</button>
+    </div>
+
+    <div id="graphStatus" class="muted" role="status">
+        Loading process relationships...
+    </div>
+
+    <div class="graph-layout">
+        <div>
+            <div id="processGraph" aria-label="Interactive process relationship graph"></div>
+
+            <div class="graph-legend">
+    <span><span class="legend-dot" style="background:#fb7185"></span>Selected process</span>
+    <span><span class="legend-dot" style="background:#a78bfa"></span>Direct parent</span>
+    <span><span class="legend-dot" style="background:#34d399"></span>Direct child</span>
+    <span><span class="legend-dot" style="background:#60a5fa"></span>Ancestor</span>
+    <span><span class="legend-dot" style="background:#fbbf24"></span>Descendant</span>
+</div>
+        </div>
+
+        <aside class="graph-details" aria-live="polite">
+            <h3>Process details</h3>
+            <div class="muted">Select a node in the graph to inspect it.</div>
+
+            <div class="graph-detail-row">
+                <div class="graph-detail-label">Process name</div>
+                <div id="graphDetailName" class="graph-detail-value">—</div>
+            </div>
+
+            <div class="graph-detail-row">
+                <div class="graph-detail-label">PID</div>
+                <div id="graphDetailPid" class="graph-detail-value">—</div>
+            </div>
+
+            <div class="graph-detail-row">
+                <div class="graph-detail-label">Parent PID</div>
+                <div id="graphDetailParent" class="graph-detail-value">—</div>
+            </div>
+
+            <div class="graph-detail-row">
+                <div class="graph-detail-label">CPU usage</div>
+                <div id="graphDetailCpu" class="graph-detail-value">—</div>
+            </div>
+
+            <div class="graph-detail-row">
+                <div class="graph-detail-label">Memory</div>
+                <div id="graphDetailRam" class="graph-detail-value">—</div>
+            </div>
+
+            <div class="graph-detail-row">
+                <div class="graph-detail-label">OS status</div>
+                <div id="graphDetailStatus" class="graph-detail-value">—</div>
+            </div>
+
+            <div class="graph-detail-row">
+                <div class="graph-detail-label">SALM protection</div>
+                <div id="graphDetailProtected" class="graph-detail-value">—</div>
+            </div>
+        </aside>
+    </div>
+</section>
 </main>
 
 <footer>
@@ -530,6 +723,393 @@ function badgeClass(classification) {
     if (classification === "IDLE RESOURCE CONSUMER") return "warn";
     return "good";
 }
+
+let relationshipGraph = null;
+
+function setGraphStatus(message) {
+    document.getElementById("graphStatus").textContent = message;
+}
+
+function showGraphProcess(node) {
+    const data = node.data();
+
+    document.getElementById("graphDetailName").textContent =
+        data.name || "Unknown";
+
+    document.getElementById("graphDetailPid").textContent =
+        data.pid ?? "—";
+
+    document.getElementById("graphDetailParent").textContent =
+        data.parent_pid ?? "Not available";
+
+    document.getElementById("graphDetailCpu").textContent =
+        `${Number(data.cpu_percent || 0).toFixed(2)}%`;
+
+    document.getElementById("graphDetailRam").textContent =
+        `${Number(data.memory_mb || 0).toFixed(2)} MB`;
+
+    document.getElementById("graphDetailStatus").textContent =
+        data.status || "Unknown";
+
+    document.getElementById("graphDetailProtected").textContent =
+        data.protected ? "Protected by SALM" : "Not protected";
+}
+
+async function loadRelationshipGraph() {
+    const refreshButton = document.getElementById("refreshGraphBtn");
+
+    if (typeof cytoscape === "undefined") {
+        setGraphStatus(
+            "Cytoscape.js could not load. Check your internet connection."
+        );
+        return;
+    }
+
+    refreshButton.disabled = true;
+    setGraphStatus("Loading process relationships...");
+
+    try {
+        const response = await fetch("/api/relationship-graph?limit=150");
+
+        if (!response.ok) {
+            let message = "Relationship graph API returned an error.";
+
+            try {
+                const errorData = await response.json();
+                message = errorData.detail || message;
+            } catch (_) {}
+
+            throw new Error(message);
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data.nodes)) {
+            throw new Error("The API response does not contain a nodes array.");
+        }
+
+        const elements = [
+            ...data.nodes,
+            ...(Array.isArray(data.edges) ? data.edges : [])
+        ];
+
+        if (!relationshipGraph) {
+            relationshipGraph = cytoscape({
+                container: document.getElementById("processGraph"),
+                elements: elements,
+
+                
+        style: [
+            {
+                selector: "node",
+                style: {
+            "background-color": "#64748b",
+            "border-width": 1,
+            "border-color": "#94a3b8",
+            "label": "data(label)",
+            "color": "#edf2ff",
+            "font-size": 10,
+            "text-wrap": "wrap",
+            "text-max-width": 110,
+            "text-valign": "bottom",
+            "text-halign": "center",
+            "text-margin-y": 7,
+            "width": 42,
+            "height": 42
+        }
+    },
+    {
+        selector: 'node[level = "focus"]',
+        style: {
+            "background-color": "#fb7185",
+            "border-color": "#ffffff",
+            "border-width": 4,
+            "width": 58,
+            "height": 58,
+            "font-size": 12,
+            "font-weight": "bold"
+        }
+    },
+    {
+        selector: 'node[level = "parent"]',
+        style: {
+            "background-color": "#a78bfa",
+            "border-color": "#c4b5fd"
+        }
+    },
+    {
+        selector: 'node[level = "child"]',
+        style: {
+            "background-color": "#34d399",
+            "border-color": "#6ee7b7"
+        }
+    },
+    {
+        selector: 'node[level = "ancestor"]',
+        style: {
+            "background-color": "#60a5fa",
+            "border-color": "#93c5fd"
+        }
+    },
+    {
+        selector: 'node[level = "descendant"]',
+        style: {
+            "background-color": "#fbbf24",
+            "border-color": "#fde68a"
+        }
+    },
+    {
+        selector: "node:selected",
+        style: {
+            "border-color": "#ffffff",
+            "border-width": 4
+        }
+    },
+    {
+        selector: "edge",
+        style: {
+            "width": 1.5,
+            "line-color": "#526783",
+            "target-arrow-color": "#70a5ff",
+            "target-arrow-shape": "triangle",
+            "curve-style": "bezier",
+            "arrow-scale": 0.8
+        }
+    }
+],
+
+
+                layout: {
+                    name: "breadthfirst",
+                    directed: true,
+                    padding: 35,
+                    spacingFactor: 1.2,
+                    animate: false
+                },
+
+                minZoom: 0.2,
+                maxZoom: 3,
+                wheelSensitivity: 0.2
+            });
+
+            relationshipGraph.on("tap", "node", function (event) {
+                relationshipGraph.nodes().unselect();
+                event.target.select();
+                showGraphProcess(event.target);
+            });
+        } else {
+            relationshipGraph.elements().remove();
+            relationshipGraph.add(elements);
+
+            relationshipGraph.layout({
+                name: "breadthfirst",
+                directed: true,
+                padding: 35,
+                spacingFactor: 1.2,
+                animate: false
+            }).run();
+        }
+
+        relationshipGraph.resize();
+        relationshipGraph.fit(undefined, 35);
+
+        document.getElementById("graphDetailName").textContent =
+            "Select a node to inspect it";
+
+        document.getElementById("graphDetailPid").textContent = "—";
+        document.getElementById("graphDetailParent").textContent = "—";
+        document.getElementById("graphDetailCpu").textContent = "—";
+        document.getElementById("graphDetailRam").textContent = "—";
+        document.getElementById("graphDetailStatus").textContent = "—";
+        document.getElementById("graphDetailProtected").textContent = "—";
+
+        setGraphStatus(
+            `${data.node_count ?? data.nodes.length} processes · ` +
+            `${data.edge_count ?? (data.edges || []).length} relationships · ` +
+            "Click a node to view details."
+        );
+
+    } catch (error) {
+        console.error("Relationship graph error:", error);
+        setGraphStatus("Could not load graph: " + error.message);
+    } finally {
+        refreshButton.disabled = false;
+    }
+}
+
+
+
+function searchRelationshipGraph() {
+    if (!relationshipGraph) {
+        setGraphStatus("Load the graph before searching.");
+        return;
+    }
+
+    const query = document.getElementById("graphSearch")
+        .value.trim().toLowerCase();
+
+    if (!query) {
+        setGraphStatus("Enter a process name or PID to search.");
+        return;
+    }
+
+    const allNodes = relationshipGraph.nodes();
+
+    // Numeric input means exact PID matching.
+    const isPid = /^\d+$/.test(query);
+
+    const matches = allNodes.filter(node => {
+        const data = node.data();
+
+        if (isPid) {
+            return String(data.pid) === query;
+        }
+
+        return String(data.name || "").toLowerCase().includes(query);
+    });
+
+    if (matches.length === 0) {
+        setGraphStatus(
+            isPid
+                ? `PID ${query} was not found in the loaded graph.`
+                : `No process found matching "${query}".`
+        );
+        return;
+    }
+
+    // For a name search, use the first match.
+    // For a PID search, this is the exact matching PID.
+    const selected = matches[0];
+
+    // Hide the full graph before showing the selected process tree.
+    relationshipGraph.elements().style("display", "none");
+
+    allNodes.removeStyle("background-color");
+    allNodes.removeStyle("border-color");
+    allNodes.removeStyle("border-width");
+    allNodes.removeData("level");
+
+    // Keep a record of the distance and relationship level.
+    const levels = new Map();
+    levels.set(selected.id(), "focus");
+
+    // Direct parent and children.
+    const directEdges = selected.connectedEdges();
+
+    directEdges.forEach(edge => {
+        const other = edge.source().id() === selected.id()
+            ? edge.target()
+            : edge.source();
+
+        const level = edge.source().id() === selected.id()
+            ? "child"
+            : "parent";
+
+        if (!levels.has(other.id())) {
+            levels.set(other.id(), level);
+        }
+    });
+
+    // Walk upwards through parents, if those parents exist in the graph.
+    let current = selected;
+    const visitedParents = new Set([selected.id()]);
+
+    while (true) {
+        const parentEdge = current.incomers("edge").first();
+
+        if (!parentEdge.length) break;
+
+        const parent = parentEdge.source();
+
+        if (visitedParents.has(parent.id())) break;
+
+        visitedParents.add(parent.id());
+
+        if (!levels.has(parent.id())) {
+            levels.set(parent.id(), "ancestor");
+        }
+
+        current = parent;
+    }
+
+    // Walk downwards through descendants, if present in the graph.
+    const descendants = selected.successors("node");
+
+    descendants.forEach(node => {
+        if (!levels.has(node.id())) {
+            levels.set(node.id(), "descendant");
+        }
+    });
+
+    // Show only the selected process and its connected relationships.
+    const visibleNodes = relationshipGraph.collection(
+        Array.from(levels.keys()).map(id => relationshipGraph.getElementById(id))
+    );
+
+    const visibleEdges = visibleNodes.connectedEdges().filter(edge =>
+        levels.has(edge.source().id()) &&
+        levels.has(edge.target().id())
+    );
+
+    visibleNodes.style("display", "element");
+    visibleEdges.style("display", "element");
+
+    // Assign the visual level to each visible node.
+    levels.forEach((level, id) => {
+        relationshipGraph.getElementById(id).data("level", level);
+    });
+
+    relationshipGraph.nodes().unselect();
+    selected.select();
+
+    relationshipGraph.animate({
+        fit: {
+            eles: visibleNodes.union(visibleEdges),
+            padding: 55
+        },
+        duration: 350
+    });
+
+    showGraphProcess(selected);
+
+    setGraphStatus(
+        `Focused on ${selected.data("name")} (PID ${selected.data("pid")}). ` +
+        `${visibleNodes.length} related processes shown. ` +
+        "Click Refresh graph to restore all processes."
+    );
+}
+
+
+document.getElementById("refreshGraphBtn").addEventListener(
+    "click",
+    loadRelationshipGraph
+);
+
+document.getElementById("graphSearchBtn").addEventListener(
+    "click",
+    searchRelationshipGraph
+);
+
+document.getElementById("graphSearch").addEventListener(
+    "keydown",
+    event => {
+        if (event.key === "Enter") {
+            searchRelationshipGraph();
+        }
+    }
+);
+
+document.getElementById("graphResetBtn").addEventListener(
+    "click",
+    () => {
+        if (!relationshipGraph) return;
+
+        relationshipGraph.nodes().unselect();
+        relationshipGraph.fit(undefined, 35);
+
+        setGraphStatus("View reset.");
+    }
+);
 
 function initCharts() {
     if (typeof Chart === "undefined") {
